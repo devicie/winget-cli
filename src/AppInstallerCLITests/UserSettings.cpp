@@ -925,6 +925,46 @@ TEST_CASE("SettingOutputSortDirection", "[settings]")
     }
 }
 
+TEST_CASE("SettingLoggingUseCMTrace", "[settings]")
+{
+    auto again = DeleteUserSettingsFiles();
+
+    SECTION("Default value")
+    {
+        UserSettingsTest userSettingTest;
+
+        REQUIRE(userSettingTest.Get<Setting::LoggingUseCMTrace>() == false);
+        REQUIRE(userSettingTest.GetWarnings().size() == 0);
+    }
+    SECTION("Enabled")
+    {
+        std::string_view json = R"({ "logging": { "useCMTrace": true } })";
+        SetSetting(Stream::PrimaryUserSettings, json);
+        UserSettingsTest userSettingTest;
+
+        REQUIRE(userSettingTest.Get<Setting::LoggingUseCMTrace>() == true);
+        REQUIRE(userSettingTest.GetWarnings().size() == 0);
+    }
+    SECTION("Disabled")
+    {
+        std::string_view json = R"({ "logging": { "useCMTrace": false } })";
+        SetSetting(Stream::PrimaryUserSettings, json);
+        UserSettingsTest userSettingTest;
+
+        REQUIRE(userSettingTest.Get<Setting::LoggingUseCMTrace>() == false);
+        REQUIRE(userSettingTest.GetWarnings().size() == 0);
+    }
+    SECTION("Bad value type")
+    {
+        std::string_view json = R"({ "logging": { "useCMTrace": "yes" } })";
+        SetSetting(Stream::PrimaryUserSettings, json);
+        UserSettingsTest userSettingTest;
+
+        REQUIRE(userSettingTest.Get<Setting::LoggingUseCMTrace>() == false);
+        REQUIRE(userSettingTest.GetWarnings().size() == 1);
+    }
+}
+
 TEST_CASE("ConvertToSortField", "[settings]")
 {
     SECTION("Valid values - lowercase")
