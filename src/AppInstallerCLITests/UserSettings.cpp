@@ -925,7 +925,7 @@ TEST_CASE("SettingOutputSortDirection", "[settings]")
     }
 }
 
-TEST_CASE("SettingLoggingUseCMTrace", "[settings]")
+TEST_CASE("SettingLoggingFormat", "[settings]")
 {
     auto again = DeleteUserSettingsFiles();
 
@@ -933,34 +933,52 @@ TEST_CASE("SettingLoggingUseCMTrace", "[settings]")
     {
         UserSettingsTest userSettingTest;
 
-        REQUIRE(userSettingTest.Get<Setting::LoggingUseCMTrace>() == false);
+        REQUIRE(userSettingTest.Get<Setting::LoggingFormat>() == LogFileFormat::WinGet);
         REQUIRE(userSettingTest.GetWarnings().size() == 0);
     }
-    SECTION("Enabled")
+    SECTION("WinGet")
     {
-        std::string_view json = R"({ "logging": { "useCMTrace": true } })";
+        std::string_view json = R"({ "logging": { "format": "winget" } })";
         SetSetting(Stream::PrimaryUserSettings, json);
         UserSettingsTest userSettingTest;
 
-        REQUIRE(userSettingTest.Get<Setting::LoggingUseCMTrace>() == true);
+        REQUIRE(userSettingTest.Get<Setting::LoggingFormat>() == LogFileFormat::WinGet);
         REQUIRE(userSettingTest.GetWarnings().size() == 0);
     }
-    SECTION("Disabled")
+    SECTION("CCM")
     {
-        std::string_view json = R"({ "logging": { "useCMTrace": false } })";
+        std::string_view json = R"({ "logging": { "format": "ccm" } })";
         SetSetting(Stream::PrimaryUserSettings, json);
         UserSettingsTest userSettingTest;
 
-        REQUIRE(userSettingTest.Get<Setting::LoggingUseCMTrace>() == false);
+        REQUIRE(userSettingTest.Get<Setting::LoggingFormat>() == LogFileFormat::CCM);
         REQUIRE(userSettingTest.GetWarnings().size() == 0);
+    }
+    SECTION("Case insensitive CCM")
+    {
+        std::string_view json = R"({ "logging": { "format": "CCM" } })";
+        SetSetting(Stream::PrimaryUserSettings, json);
+        UserSettingsTest userSettingTest;
+
+        REQUIRE(userSettingTest.Get<Setting::LoggingFormat>() == LogFileFormat::CCM);
+        REQUIRE(userSettingTest.GetWarnings().size() == 0);
+    }
+    SECTION("Bad value")
+    {
+        std::string_view json = R"({ "logging": { "format": "cmtrace" } })";
+        SetSetting(Stream::PrimaryUserSettings, json);
+        UserSettingsTest userSettingTest;
+
+        REQUIRE(userSettingTest.Get<Setting::LoggingFormat>() == LogFileFormat::WinGet);
+        REQUIRE(userSettingTest.GetWarnings().size() == 1);
     }
     SECTION("Bad value type")
     {
-        std::string_view json = R"({ "logging": { "useCMTrace": "yes" } })";
+        std::string_view json = R"({ "logging": { "format": true } })";
         SetSetting(Stream::PrimaryUserSettings, json);
         UserSettingsTest userSettingTest;
 
-        REQUIRE(userSettingTest.Get<Setting::LoggingUseCMTrace>() == false);
+        REQUIRE(userSettingTest.Get<Setting::LoggingFormat>() == LogFileFormat::WinGet);
         REQUIRE(userSettingTest.GetWarnings().size() == 1);
     }
 }

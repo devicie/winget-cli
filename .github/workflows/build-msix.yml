@@ -1,0 +1,75 @@
+name: Build MSIX
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'copilot/**'
+    paths:
+      - 'src/**'
+      - '.github/workflows/build-msix.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - '.github/workflows/build-msix.yml'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 120
+
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        platform: [x64]
+        configuration: [Release]
+
+    env:
+      solution: 'src\AppInstallerCLI.sln'
+      buildOutDir: ${{ github.workspace }}\src\${{ matrix.platform }}\${{ matrix.configuration }}
+      appxPackageDir: ${{ github.workspace }}\artifacts\${{ matrix.platform }}\AppxPackages
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Restore Solution (NuGet)
+        run: nuget restore ${{ env.solution }}
+
+      - name: Restore AppInstallerCLIPackage (NuGet)
+        run: nuget restore src\AppInstallerCLIPackage\AppInstallerCLIPackage.wapproj
+
+      - name: Restore .NET projects
+        run: dotnet restore src
+
+      - name: Integrate vcpkg
+        run: |
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" integrate install
+        shell: pwsh
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Solution
+        run: |
+          msbuild ${{ env.solution }} `
+            /p:Platform=${{ matrix.platform }} `
+            /p:Configuration=${{ matrix.configuration }} `
+            /p:AppxBundlePlatforms="${{ matrix.platform }}" `
+            /p:AppxPackageDir="${{ env.appxPackageDir }}" `
+            /p:AppxBundle=Always `
+            /p:UapAppxPackageBuildMode=SideloadOnly `
+            /m
+        shell: pwsh
+
+      - name: Upload MSIX artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: msix-${{ matrix.platform }}-${{ matrix.configuration }}
+          path: ${{ env.appxPackageDir }}
+          retention-days: 7

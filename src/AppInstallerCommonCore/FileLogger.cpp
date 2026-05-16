@@ -29,9 +29,9 @@ namespace AppInstaller::Logging
             return std::move(strstr).str();
         }
 
-        // Formats a log line in CMTrace format.
-        // CMTrace log format: <![LOG[message]LOG]!><time="HH:mm:ss.fff+###" date="MM-dd-YYYY" component="channel" context="" type="N" thread="TID" file="">
-        std::string ToCMTraceLogLine(Channel channel, Level level, std::string_view message)
+        // Formats a log line in CCM (CMTrace-compatible) format.
+        // CCM log format: <![LOG[message]LOG]!><time="HH:mm:ss.fff+###" date="MM-dd-YYYY" component="channel" context="" type="N" thread="TID" file="">
+        std::string ToCCMLogLine(Channel channel, Level level, std::string_view message)
         {
             auto now = std::chrono::system_clock::now();
             auto tt = std::chrono::system_clock::to_time_t(now);
@@ -46,7 +46,7 @@ namespace AppInstaller::Logging
             _get_timezone(&timezoneBiasSeconds);
             long biasMins = timezoneBiasSeconds / 60;
 
-            // CMTrace type: 1=Info/Verbose, 2=Warning, 3=Error/Critical
+            // CCM type: 1=Info/Verbose, 2=Warning, 3=Error/Critical
             int type;
             switch (level)
             {
@@ -142,9 +142,9 @@ namespace AppInstaller::Logging
     void FileLogger::Write(Channel channel, Level level, std::string_view message) noexcept try
     {
         std::string log;
-        if (Settings::User().Get<Settings::Setting::LoggingUseCMTrace>())
+        if (Settings::User().Get<Settings::Setting::LoggingFormat>() == LogFileFormat::CCM)
         {
-            log = ToCMTraceLogLine(channel, level, message);
+            log = ToCCMLogLine(channel, level, message);
         }
         else
         {
