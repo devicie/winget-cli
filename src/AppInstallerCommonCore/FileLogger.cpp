@@ -30,7 +30,6 @@ namespace AppInstaller::Logging
         }
 
         // Formats a log line in CCM (CMTrace-compatible) format.
-        // CCM log format: <![LOG[message]LOG]!><time="HH:mm:ss.fff+###" date="MM-dd-YYYY" component="channel" context="" type="N" thread="TID" file="">
         std::string ToCCMLogLine(Channel channel, Level level, std::string_view message)
         {
             auto now = std::chrono::system_clock::now();
