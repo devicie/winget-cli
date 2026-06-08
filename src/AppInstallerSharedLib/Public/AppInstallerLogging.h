@@ -103,7 +103,7 @@ namespace AppInstaller::Logging
     {
         // Default WinGet format: "<timestamp> <level> [channel] message"
         WinGet,
-        // CCM/CMTrace-compatible format: <![LOG[message]LOG]!><time="HH:mm:ss.fff+###" date="MM-dd-YYYY" component="channel" context="" type="N" thread="TID" file="">
+        // CCM/CMTrace-compatible format: "<![LOG[message]LOG]!><time="<time>" date="<date>" component="<channel>" context="" type="N" thread="<id>" file="">"
         CCM,
     };
 
