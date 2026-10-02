@@ -243,7 +243,8 @@ namespace AppInstaller::Manifest
         auto defaultLocErrors = ValidateManifestLocalization(manifest.DefaultLocalization, !options.FullValidation);
         std::move(defaultLocErrors.begin(), defaultLocErrors.end(), std::inserter(resultErrors, resultErrors.end()));
 
-        // Comparison function to check duplicate installer entry. {installerType, arch, language and scope} combination is the key.
+        // Comparison function to check duplicate installer entry. {installerType, arch, language, scope and minOSVersion} combination is the key.
+        // MinOSVersion is part of the key so that a manifest can provide different installers (or dependencies) for different OS versions.
         // Todo: use the comparator from ManifestComparator when that one is fully implemented.
         auto installerCmp = [](const ManifestInstaller& in1, const ManifestInstaller& in2)
         {
@@ -277,6 +278,22 @@ namespace AppInstaller::Manifest
                 return in1.Scope < in2.Scope;
             }
 
+            // An empty MinOSVersion is treated as the lowest possible version.
+            if (in1.MinOSVersion.empty() != in2.MinOSVersion.empty())
+            {
+                return in1.MinOSVersion.empty();
+            }
+
+            if (!in1.MinOSVersion.empty())
+            {
+                Utility::Version minOSVersion1{ in1.MinOSVersion };
+                Utility::Version minOSVersion2{ in2.MinOSVersion };
+                if (minOSVersion1 != minOSVersion2)
+                {
+                    return minOSVersion1 < minOSVersion2;
+                }
+            }
+
             return false;
         };
 
@@ -300,7 +317,7 @@ namespace AppInstaller::Manifest
             {
                 AICLI_LOG(Core, Error, << "Duplicate installer: Type [" << InstallerTypeToString(installer.EffectiveInstallerType()) <<
                     "], Architecture [" << Utility::ToString(installer.Arch) << "], Locale [" << installer.Locale <<
-                    "], Scope [" << ScopeToString(installer.Scope) << "]");
+                    "], Scope [" << ScopeToString(installer.Scope) << "], MinOSVersion [" << installer.MinOSVersion << "]");
 
                 resultErrors.emplace_back(ManifestError::DuplicateInstallerEntry);
                 duplicateInstallerFound = true;

@@ -1,0 +1,31 @@
+# Bad Manifest. Uniqueness installers same type, arch, locale, scope and MinimumOSVersion.
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.singleton.1.0.0.schema.json
+
+PackageIdentifier: AppInstallerCliTest.TestExeInstaller
+PackageVersion: 1.0.0.0
+PackageLocale: en-US
+PackageName: AppInstaller Test Exe Installer
+ShortDescription: AppInstaller Test Exe Installer
+Publisher: Microsoft Corporation
+License: Test
+InstallerType: exe
+InstallerSwitches:
+  Silent: /silent
+  SilentWithProgress: /silentwithprogress
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://ThisIsNotUsed
+    InstallerSha256: 98B67758CEAFFCBB3FE47838FD0A8D7BD581C2650842D6B2B0E0D49A23270CCD
+    MinimumOSVersion: 10.0.28000.0
+    Dependencies:
+      WindowsFeatures:
+        - NetFx3
+  - Architecture: x64
+    InstallerUrl: https://ThisIsNotUsed
+    InstallerSha256: 98B67758CEAFFCBB3FE47838FD0A8D7BD581C2650842D6B2B0E0D49A23270CCD
+    MinimumOSVersion: 10.0.28000
+    Dependencies:
+      PackageDependencies:
+        - PackageIdentifier: Microsoft.DotNet.Framework.Runtime.3
+ManifestType: singleton
+ManifestVersion: 1.0.0
