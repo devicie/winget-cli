@@ -614,6 +614,9 @@
     <CopyFileToFolders Include="TestData\Manifest-Bad-InstallerUniqueness-SameLang.yaml">
       <DeploymentContent>true</DeploymentContent>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="TestData\Manifest-Bad-InstallerUniqueness-SameMinOSVersion.yaml">
+      <DeploymentContent>true</DeploymentContent>
+    </CopyFileToFolders>
     <CopyFileToFolders Include="TestData\Manifest-Bad-InstallerUniqueness.yaml">
       <DeploymentContent>true</DeploymentContent>
     </CopyFileToFolders>
@@ -681,6 +684,9 @@
       <DeploymentContent>true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="TestData\Manifest-Good-InstallerUniqueness-DiffLangs.yaml">
+      <DeploymentContent>true</DeploymentContent>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="TestData\Manifest-Good-InstallerUniqueness-DiffMinOSVersion.yaml">
       <DeploymentContent>true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="TestData\Manifest-Good-InstallerUniqueness-DiffScope.yaml">

@@ -48,9 +48,9 @@ namespace AppInstaller::Manifest
             }
         };
 
-        struct OSVersionFilter : public details::FilterField
+        struct OSVersionComparator : public details::ComparisonField
         {
-            OSVersionFilter() : details::FilterField("OS Version") {}
+            OSVersionComparator() : details::ComparisonField("OS Version") {}
 
             InapplicabilityFlags IsApplicable(const ManifestInstaller& installer) override
             {
@@ -67,6 +67,34 @@ namespace AppInstaller::Manifest
                 std::string result = "Current OS is lower than MinOSVersion ";
                 result += installer.MinOSVersion;
                 return result;
+            }
+
+            details::ComparisonResult IsFirstBetter(const ManifestInstaller& first, const ManifestInstaller& second) override
+            {
+                // Both installers are applicable to the current OS at this point. The one with the higher MinOSVersion
+                // targets the current OS more specifically, so it should be preferred over one meant for older OS versions.
+                if (IsMinOSVersionHigher(first, second))
+                {
+                    return details::ComparisonResult::WeakPositive;
+                }
+
+                return details::ComparisonResult::Negative;
+            }
+
+        private:
+            static bool IsMinOSVersionHigher(const ManifestInstaller& first, const ManifestInstaller& second)
+            {
+                if (first.MinOSVersion.empty())
+                {
+                    return false;
+                }
+
+                if (second.MinOSVersion.empty())
+                {
+                    return true;
+                }
+
+                return Utility::Version(first.MinOSVersion) > Utility::Version(second.MinOSVersion);
             }
         };
 
@@ -735,8 +763,6 @@ namespace AppInstaller::Manifest
 
     ManifestComparator::ManifestComparator(const Options& options)
     {
-        // Filters based on installer's MinOSVersion
-        AddFilter(std::make_unique<OSVersionFilter>());
         // Filters out portable installers if they are not supported by the system
         AddFilter(std::make_unique<PortableInstallFilter>());
         // Filters based on the scope of a currently installed package
@@ -777,6 +803,9 @@ namespace AppInstaller::Manifest
         // Only applies when preference exists:
         // Weak if first is in preference list and second is not
         AddComparator(InstallerTypeComparator::Create(options));
+        // Filters out installers whose MinOSVersion is higher than the current OS version.
+        // Weak if first has a higher MinOSVersion than second (it targets the current OS more specifically)
+        AddComparator(std::make_unique<OSVersionComparator>());
     }
 
     InstallerAndInapplicabilities ManifestComparator::GetPreferredInstaller(const Manifest& manifest)

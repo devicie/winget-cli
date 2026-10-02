@@ -5,6 +5,8 @@
 #include <ExecutionContext.h>
 #include <COMContext.h>
 #include <winget/ManifestComparator.h>
+#include <winget/ManifestYamlParser.h>
+#include <winget/Runtime.h>
 #include <winget/UserSettings.h>
 #include <Workflows/WorkflowBase.h>
 
@@ -949,4 +951,83 @@ TEST_CASE("ManifestComparator_InstallerCompatibilitySet_Weaker_Than_Architecture
     auto [result, inapplicabilities] = mc.GetPreferredInstaller(manifest);
 
     RequireInstaller(result, target);
+}
+
+TEST_CASE("ManifestComparator_OSVersionCompare", "[manifest_comparator]")
+{
+    Manifest manifest;
+    ManifestInstaller noMinimum;
+    ManifestInstaller older;
+    ManifestInstaller newer;
+
+    // Installer order should not matter; the installer with the highest applicable MinOSVersion is preferred.
+    SECTION("Ascending")
+    {
+        noMinimum = AddInstaller(manifest, Architecture::Neutral, InstallerTypeEnum::Exe, ScopeEnum::Unknown, "");
+        older = AddInstaller(manifest, Architecture::Neutral, InstallerTypeEnum::Exe, ScopeEnum::Unknown, "10.0.0.0");
+        newer = AddInstaller(manifest, Architecture::Neutral, InstallerTypeEnum::Exe, ScopeEnum::Unknown, "10.0.10240.0");
+    }
+    SECTION("Descending")
+    {
+        newer = AddInstaller(manifest, Architecture::Neutral, InstallerTypeEnum::Exe, ScopeEnum::Unknown, "10.0.10240.0");
+        older = AddInstaller(manifest, Architecture::Neutral, InstallerTypeEnum::Exe, ScopeEnum::Unknown, "10.0.0.0");
+        noMinimum = AddInstaller(manifest, Architecture::Neutral, InstallerTypeEnum::Exe, ScopeEnum::Unknown, "");
+    }
+
+    ManifestComparator mc(GetManifestComparatorOptions(ManifestComparatorTestContext{}, {}));
+    auto [result, inapplicabilities] = mc.GetPreferredInstaller(manifest);
+
+    RequireInstaller(result, newer);
+    REQUIRE(inapplicabilities.size() == 0);
+}
+
+TEST_CASE("ManifestComparator_OSVersionCompare_InapplicableIgnored", "[manifest_comparator]")
+{
+    Manifest manifest;
+    ManifestInstaller noMinimum = AddInstaller(manifest, Architecture::Neutral, InstallerTypeEnum::Exe, ScopeEnum::Unknown, "");
+    AddInstaller(manifest, Architecture::Neutral, InstallerTypeEnum::Exe, ScopeEnum::Unknown, "10.0.99999.0");
+
+    ManifestComparator mc(GetManifestComparatorOptions(ManifestComparatorTestContext{}, {}));
+    auto [result, inapplicabilities] = mc.GetPreferredInstaller(manifest);
+
+    RequireInstaller(result, noMinimum);
+    RequireInapplicabilities(inapplicabilities, { InapplicabilityFlags::OSVersion });
+}
+
+TEST_CASE("ManifestComparator_OSVersion_Weaker_Than_Architecture", "[manifest_comparator]")
+{
+    Manifest manifest;
+    ManifestInstaller target = AddInstaller(manifest, GetSystemArchitecture(), InstallerTypeEnum::Exe, ScopeEnum::Unknown, "");
+    ManifestInstaller foil = AddInstaller(manifest, Architecture::Neutral, InstallerTypeEnum::Exe, ScopeEnum::Unknown, "10.0.10240.0");
+
+    ManifestComparator mc(GetManifestComparatorOptions(ManifestComparatorTestContext{}, {}));
+    auto [result, inapplicabilities] = mc.GetPreferredInstaller(manifest);
+
+    RequireInstaller(result, target);
+}
+
+TEST_CASE("ManifestComparator_OSVersion_NetFx3", "[manifest_comparator]")
+{
+    // The NetFx3 Windows feature is not available from 10.0.28000, where .NET Framework 3.5 is a standalone package instead.
+    Manifest manifest = YamlParser::CreateFromPath(TestDataFile("Manifest-Good-InstallerUniqueness-DiffMinOSVersion.yaml"));
+
+    ManifestComparator mc(GetManifestComparatorOptions(ManifestComparatorTestContext{}, {}));
+    auto [result, inapplicabilities] = mc.GetPreferredInstaller(manifest);
+
+    REQUIRE(result);
+
+    if (AppInstaller::Runtime::IsCurrentOSVersionGreaterThanOrEqual(Version{ "10.0.28000.0" }))
+    {
+        REQUIRE(result->MinOSVersion == "10.0.28000.0");
+        REQUIRE(result->Dependencies.HasExactDependency(DependencyType::Package, "Microsoft.DotNet.Framework.Runtime.3"));
+        REQUIRE(!result->Dependencies.HasAnyOf(DependencyType::WindowsFeature));
+        REQUIRE(inapplicabilities.size() == 0);
+    }
+    else
+    {
+        REQUIRE(result->MinOSVersion.empty());
+        REQUIRE(result->Dependencies.HasExactDependency(DependencyType::WindowsFeature, "NetFx3"));
+        REQUIRE(!result->Dependencies.HasAnyOf(DependencyType::Package));
+        RequireInapplicabilities(inapplicabilities, { InapplicabilityFlags::OSVersion });
+    }
 }
